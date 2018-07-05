@@ -26,6 +26,7 @@ class DataCooking extends React.Component {
     super(props)
     this.state = {
       ready: false,
+      failed: false,
       duration: 0,
       error: null,
       createdAt: "0"
@@ -34,8 +35,7 @@ class DataCooking extends React.Component {
 
   componentDidMount() {
     const { jobID } = this.props
-
-    setTimeout((() => {
+    const checkState = (() => {
       fetch(`/_/kue/job/${jobID}`)
         .then(resp => {
           return resp.json()
@@ -43,14 +43,18 @@ class DataCooking extends React.Component {
         .then((j => {
           let state = {}
           state['createdAt'] = j.created_at
-          if (j.state === "completed") {
+          state['error'] = j.error
+          if (j.state === "complete") {
             state['ready'] = true
           } else if (j.state === "failed") {
             state['error'] = j.error
+            state['failed'] = true
           }
           this.setState(state)
         }).bind(this))
-    }).bind(this), 3000);
+        setTimeout(checkState, 3000)
+    }).bind(this)
+    checkState()
   }
 
   render() {
@@ -63,25 +67,31 @@ class DataCooking extends React.Component {
       filename
     } = this.props
 
-    const { ready, error, createdAt } = this.state
+    const { failed, ready, error, createdAt } = this.state
     console.log(createdAt)
     const creationDate = new Date(parseInt(createdAt))
 
     return (
       <div>
-        <Heading h={2}>Your data is cooking.</Heading>
-        <Heading h={3}>Please wait....</Heading>
+        {!ready
+          && <div>
+          <Heading h={2}>Your data is cooking.</Heading>
+          <Heading h={3}>Please wait....</Heading>
+          </div>
+        }
+        {ready && <Heading h={2}>Cooked</Heading>}
         <Text>Created At: {creationDate.toString()}</Text>
         <Text>Country: {country}</Text>
         <Text>Start Date: {startDate}</Text>
         <Text>End Date: {endDate}</Text>
         <Text>URLs: {urls.toString()}</Text>
         <Text>JobID: {jobID}</Text>
+
+        <Link href={`/download/${filename}`}>Download {filename}</Link>
+
+        {failed && <Heading h={3} color="red">There was an error. Try again</Heading>}
         {error !== null
-          && <div>
-          <Heading h={3} color="red">There was an error. Try again</Heading>
-          <p>{error}</p>
-          </div>
+          && <p>{error}</p>
         }
       </div>
     )

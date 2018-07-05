@@ -1,13 +1,14 @@
 /* global require, process, __dirname */
 /* eslint no-console: off */
+const path = require('path')
 const express = require('express')
 const next = require('next')
 const axios = require('axios')
 
-const { kueApp, handleMakeCSV } = require('./lib/jobs')
-
 process.env.NODE_ENV = process.env.NODE_ENV || 'production'
 process.env.PORT = process.env.PORT || 3200
+
+const { kueApp, handleMakeCSV, CSV_OUTPUT_DIR } = require('./lib/jobs')
 
 const dev = process.env.NODE_ENV === 'development'
 
@@ -28,6 +29,8 @@ app.prepare()
     server.use(express.json())
 
     server.post('/_/make-csv', handleMakeCSV)
+    server.use('/download',
+      express.static(CSV_OUTPUT_DIR))
 
     // Default catch all
     server.all('*', (req, res) => {

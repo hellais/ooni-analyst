@@ -4,4 +4,5 @@ node_modules/
 ignore/
 .DS_Store
 package-lock.json
-csv_output/*
+csv_output/
+private/
