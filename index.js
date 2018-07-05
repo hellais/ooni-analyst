@@ -4,6 +4,8 @@ const express = require('express')
 const next = require('next')
 const axios = require('axios')
 
+const { kueApp, handleMakeCSV } = require('./lib/jobs')
+
 process.env.NODE_ENV = process.env.NODE_ENV || 'production'
 process.env.PORT = process.env.PORT || 3200
 
@@ -22,6 +24,11 @@ app.prepare()
     })
   })
   .then(() => {
+    server.use('/_/kue', kueApp)
+    server.use(express.json())
+
+    server.post('/_/make-csv', handleMakeCSV)
+
     // Default catch all
     server.all('*', (req, res) => {
       return handle(req, res)
