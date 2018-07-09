@@ -3,13 +3,14 @@ import sys
 import argparse
 from datetime import datetime
 
-import yaml
 import pandas as pd
 import psycopg2
-from sshtunnel import SSHTunnelForwarder
 
-def query(q, params):
+def query(q, params, pg_dsn):
     # XXX this is useful for debugging
+    """
+    import yaml
+    from sshtunnel import SSHTunnelForwarder
     with open('private/secrets.yml') as in_file:
         secrets = yaml.load(in_file)
     with SSHTunnelForwarder(
@@ -25,11 +26,12 @@ def query(q, params):
             password=secrets['shovel_password'],
             dbname='metadb')
         return pd.read_sql_query(q, conn, params=params)
-    #conn = psycopg2.connect(os.environ['PG_DSN'])
-    #return pd.read_sql_query(q, conn, params=params)
+    """
+    conn = psycopg2.connect(pg_dsn)
+    return pd.read_sql_query(q, conn, params=params)
 
 
-def make_csv(output_path, urls, probe_cc, start_date, end_date):
+def make_csv(output_path, urls, probe_cc, start_date, end_date, pg_dsn):
     countries = [probe_cc]
     params = [start_date, end_date, probe_cc]
     for url in urls:
@@ -57,7 +59,7 @@ def make_csv(output_path, urls, probe_cc, start_date, end_date):
     q = base_query + where_clause
     print(q)
     print(params)
-    res = query(q, params)
+    res = query(q, params, pg_dsn)
     print(res)
     res.to_csv(output_path)
 
@@ -68,6 +70,7 @@ def parse_args():
     p.add_argument('--start-date', metavar='START_DATE', help='Start date interval', required=True)
     p.add_argument('--end-date', metavar='END_DATE', help='End date interval', required=True)
     p.add_argument('--urls', metavar='URL', nargs='*', help='URLs to test')
+    p.add_argument('--postgres', metavar='DSN', help='libpq data source name')
     ## XXX add urls
     opt = p.parse_args()
     return opt
@@ -78,7 +81,8 @@ def main():
              urls=opt.urls,
              probe_cc=opt.country,
              start_date=opt.start_date,
-             end_date=opt.end_date)
+             end_date=opt.end_date,
+             pg_dsn=opt.postgres)
     print(opt.output)
 
 if __name__ == "__main__":
